@@ -4,13 +4,15 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-  "dev": "NODE_ENV=development node src/index.js",
-  "start": "node src/index.js",
-  "test": "NODE_OPTIONS=--experimental-vm-modules jest --ci --runInBand --coverage --coverageReporters=lcov --coverageReporters=text --reporters=default --reporters=jest-junit"
+    "dev": "NODE_ENV=development node src/index.js",
+    "start": "node src/index.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --ci --runInBand --coverage --coverageReporters=lcov --coverageReporters=text --reporters=default --reporters=jest-junit"
   },
   "dependencies": {
     "better-sqlite3": "^9.4.3",
+    "brace-expansion": "^2.0.2",
     "cors": "^2.8.5",
+    "cross-spawn": "^7.0.5",
     "express": "^4.19.2",
     "morgan": "^1.10.0",
     "node-fetch": "^3.3.2"

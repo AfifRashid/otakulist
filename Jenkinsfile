@@ -119,11 +119,11 @@ pipeline {
     stage('Monitoring') {
       steps {
         withCredentials([
-          string(credentialsId: 'smtp_user', variable: 'SMTP_USER'),
-          string(credentialsId: 'smtp_pass', variable: 'SMTP_PASS'),
-          string(credentialsId: 'alert_to', variable: 'ALERT_TO'),
-          string(credentialsId: 'smtp_from', variable: 'SMTP_FROM'),
-          string(credentialsId: 'smtp_smarthost', variable: 'SMTP_SMARTHOST')
+          string(credentialsId: 'SMTP_USER', variable: 'SMTP_USER'),
+          string(credentialsId: 'SMTP_PASS', variable: 'SMTP_PASS'),
+          string(credentialsId: 'ALERT_TO', variable: 'ALERT_TO'),
+          string(credentialsId: 'SMTP_FROM', variable: 'SMTP_FROM'),
+          string(credentialsId: 'SMTP_SMARTHOST', variable: 'SMTP_SMARTHOST')
         ]) {
           sh '''
             # Render Alertmanager config from template using envsubst

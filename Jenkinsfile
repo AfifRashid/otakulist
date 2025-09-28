@@ -13,8 +13,8 @@ pipeline {
     }
     stage('Build') {
       steps {
-        sh 'docker build -t otakulist-backend:ci ./backend'
-        sh 'docker build -t otakulist-frontend:ci ./frontend'
+        sh 'docker build --pull --no-cache -t otakulist-backend:ci ./backend'
+        sh 'docker build --pull --no-cache -t otakulist-frontend:ci ./frontend'
       }
     }
     stage('Test') {

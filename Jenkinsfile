@@ -30,6 +30,22 @@ pipeline {
         }
       }
     }
+    stage('CodeQuality') {
+      environment {
+        SONAR_HOST_URL = 'https://sonarcloud.io'
+      }
+      steps {
+        withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_LOGIN')]) {
+          sh '''
+            docker run --rm \
+              -e SONAR_HOST_URL=${SONAR_HOST_URL} \
+              -e SONAR_LOGIN=${SONAR_LOGIN} \
+              -v "$PWD:/usr/src" \
+              sonarsource/sonar-scanner-cli
+          '''
+        }
+      }
+    } 
     stage('Deploy') {
       steps {
         sh 'docker compose down || true'
@@ -38,3 +54,4 @@ pipeline {
     }
   }
 }
+

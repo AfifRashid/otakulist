@@ -35,7 +35,7 @@ pipeline {
         SONAR_HOST_URL = 'https://sonarcloud.io'
       }
       steps {
-        withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_LOGIN')]) {
+        withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
           sh '''
             docker run --rm \
               -e SONAR_HOST_URL=${SONAR_HOST_URL} \

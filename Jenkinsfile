@@ -35,17 +35,45 @@ pipeline {
         SONAR_HOST_URL = 'https://sonarcloud.io'
       }
       steps {
-        withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_LOGIN')]) {
+        withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
           sh '''
             docker run --rm \
               -e SONAR_HOST_URL=${SONAR_HOST_URL} \
-              -e SONAR_LOGIN=${SONAR_LOGIN} \
+              -e SONAR_TOKEN=${SONAR_TOKEN} \
               -v "$PWD:/usr/src" \
-              sonarsource/sonar-scanner-cli
+              sonarsource/sonar-scanner-cli \
+              -Dsonar.projectBaseDir=/usr/src
           '''
         }
       }
-    } 
+    }
+    stage('Security') {
+      steps {
+        sh '''
+          echo "=== Scanning backend dependencies ==="
+          docker run --rm \
+            -v "$PWD/backend:/app" \
+            aquasec/trivy fs /app
+        '''
+    
+        sh '''
+          echo "=== Scanning frontend dependencies ==="
+          docker run --rm \
+            -v "$PWD/frontend:/app" \
+            aquasec/trivy fs /app
+        '''
+    
+        sh '''
+          echo "=== Scanning Docker images ==="
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy image otakulist-backend:ci || true
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy image otakulist-frontend:ci || true
+        '''
+      }
+    }
     stage('Deploy') {
       steps {
         sh 'docker compose down || true'
@@ -54,4 +82,3 @@ pipeline {
     }
   }
 }
-

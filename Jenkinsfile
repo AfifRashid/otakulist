@@ -92,12 +92,6 @@ pipeline {
       }
     }
     stage('Release (Production)') {
-      when {
-        expression {
-          def b = sh(script: "git rev-parse --abbrev-ref HEAD", returnStdout: true).trim()
-          return (b == 'main')
-        }
-      }
       steps {
         // Create & push Git tag so it shows on GitHub
         sh """

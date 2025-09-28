@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    image: otakulist-backend:${RELEASE_TAG}
+    environment:
+      NODE_ENV: production
+      JIKAN_ENABLED: "true"
+    ports:
+      - "3001:3000"
+    volumes:
+      - db_data_prod:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:3001     # baked into prod build
+    image: otakulist-frontend:${RELEASE_TAG}
+    ports:
+      - "8081:80"                                 # Jenkins uses 8080, so prod FE = 8081
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  db_data_prod:

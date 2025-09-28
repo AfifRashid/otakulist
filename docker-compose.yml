@@ -7,7 +7,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      # - JIKAN_ENABLED=true
+      - JIKAN_ENABLED=true
     volumes:
       - db_data:/app/data
   frontend:

@@ -1,6 +1,8 @@
 properties([
   parameters([
-  string(name: 'RELEASE_TAG', defaultValue: "v1.0.${env.BUILD_NUMBER}", description: 'Version for production')
+  string(name: 'RELEASE_TAG', 
+        defaultValue: "v1.0.${env.BUILD_NUMBER}", 
+        description: 'Version for production')
   ])
 ])
 
@@ -90,45 +92,29 @@ pipeline {
       }
     }
     stage('Release (Production)') {
-      when { branch 'main' }  // Only release from main
+      when { branch 'main' } // release only from main
       steps {
-        script {
-          if (!params.AUTO_RELEASE && !params.ROLLBACK_TAG?.trim()) {
-            input message: "Promote build ${env.BUILD_NUMBER} to PRODUCTION as ${params.RELEASE_TAG}?", ok: 'Release'
-          }
-        }
+        // Create & push Git tag so it shows on GitHub
+        sh """
+          git config user.email 'jenkins@ci'
+          git config user.name 'Jenkins'
+          git tag -a ${RELEASE_TAG} -m 'Release ${RELEASE_TAG}'
+          git push origin ${RELEASE_TAG}
+        """
 
-        // If ROLLBACK_TAG is provided, prefer that; else use chosen RELEASE_TAG
-        script {
-          env.EFFECTIVE_TAG = params.ROLLBACK_TAG?.trim() ? params.ROLLBACK_TAG.trim() : params.RELEASE_TAG
-        }
-
-        // Annotate the repo with a Git tag (skip tagging if doing a rollback to an old tag)
-        script {
-          if (!params.ROLLBACK_TAG?.trim()) {
-            sh """
-              git config user.email 'jenkins@ci'
-              git config user.name 'Jenkins'
-              git tag -a ${RELEASE_TAG} -m 'Release ${RELEASE_TAG}'
-              git push origin ${RELEASE_TAG}
-            """
-          }
-        }
-
-        // Bring up production with prod compose (FE 8081, BE 3001) and versioned tag
+        // Bring up production using docker-compose.prod.yml (FE: 8081, BE: 3001)
         sh '''
           echo "=== Bringing down old prod (if any) ==="
           docker compose -p otakulist-prod -f docker-compose.prod.yml down || true
 
-          echo "=== Starting production with tag ${EFFECTIVE_TAG} ==="
-          RELEASE_TAG='''' + "${EFFECTIVE_TAG}" + '''' docker compose -p otakulist-prod -f docker-compose.prod.yml up -d --build
+          echo "=== Starting production ==="
+          RELEASE_TAG='${RELEASE_TAG}' docker compose -p otakulist-prod -f docker-compose.prod.yml up -d --build
         '''
 
-        // Prod smoke checks
-        sh 'curl -sSf http://localhost:3001/api/anime > /dev/null'  // backend
-        sh 'curl -sSf http://localhost:8081 > /dev/null'            // frontend
-
-        echo "✅ Production is live. Tag: ${env.EFFECTIVE_TAG}  FE: http://localhost:8081  BE: http://localhost:3001"
+        // Simple prod smoke checks
+        sh 'curl -sSf http://localhost:3001/api/anime > /dev/null'
+        sh 'curl -sSf http://localhost:8081 > /dev/null'
+        echo "✅ Production is live. Tag: ${RELEASE_TAG}  FE: http://localhost:8081  BE: http://localhost:3001"
       }
     }
   }

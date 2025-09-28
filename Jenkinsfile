@@ -107,7 +107,8 @@ pipeline {
           docker compose -p otakulist-prod -f docker-compose.prod.yml down || true
 
           echo "=== Starting production ==="
-          RELEASE_TAG='${RELEASE_TAG}' docker compose -p otakulist-prod -f docker-compose.prod.yml up -d --build
+          docker compose -p otakulist-prod -f docker-compose.prod.yml up -d --build \
+            --build-arg RELEASE_TAG=${RELEASE_TAG}
         '''
 
         // Simple prod smoke checks

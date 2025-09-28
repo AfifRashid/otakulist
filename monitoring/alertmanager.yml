@@ -1,0 +1,15 @@
+route:
+  receiver: "email-alerts"
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 1h
+
+receivers:
+  - name: "email-alerts"
+    email_configs:
+      - to: "${ALERT_TO}"
+        from: "${SMTP_FROM}"
+        smarthost: "${SMTP_SMARTHOST}"
+        auth_username: "${SMTP_USER}"
+        auth_password: "${SMTP_PASS}"
+        require_tls: true

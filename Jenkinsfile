@@ -107,14 +107,37 @@ pipeline {
           docker compose -p otakulist-prod -f docker-compose.prod.yml down || true
 
           echo "=== Starting production ==="
-          docker compose -p otakulist-prod -f docker-compose.prod.yml up -d --build \
-            --build-arg RELEASE_TAG=${RELEASE_TAG}
+          RELEASE_TAG=${RELEASE_TAG} docker compose -p otakulist-prod -f docker-compose.prod.yml up -d
         '''
 
         // Simple prod smoke checks
         sh 'curl -sSf http://localhost:3001/api/anime > /dev/null'
         sh 'curl -sSf http://localhost:8081 > /dev/null'
         echo "✅ Production is live. Tag: ${RELEASE_TAG}  FE: http://localhost:8081  BE: http://localhost:3001"
+      }
+    }
+    stage('Monitoring') {
+      steps {
+        withCredentials([
+          string(credentialsId: 'smtp_user', variable: 'SMTP_USER'),
+          string(credentialsId: 'smtp_pass', variable: 'SMTP_PASS'),
+          string(credentialsId: 'alert_to', variable: 'ALERT_TO'),
+          string(credentialsId: 'smtp_from', variable: 'SMTP_FROM'),
+          string(credentialsId: 'smtp_smarthost', variable: 'SMTP_SMARTHOST')
+        ]) {
+          sh '''
+            # Render Alertmanager config from template using envsubst
+            envsubst < monitoring/alertmanager.yml.template > monitoring/alertmanager.yml
+
+            # Start monitoring stack
+            docker compose -f docker-compose.monitoring.yml down || true
+            docker compose -f docker-compose.monitoring.yml up -d
+
+            # Quick check
+            sleep 5
+            curl -fsS http://localhost:9090/-/ready > /dev/null
+          '''
+        }
       }
     }
   }

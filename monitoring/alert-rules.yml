@@ -1,0 +1,21 @@
+groups:
+  - name: otakulist-rules
+    rules:
+      - alert: HighErrorRate
+        expr: sum(rate(http_request_duration_seconds_count{code=~"5.."}[5m]))
+              / sum(rate(http_request_duration_seconds_count[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx rate (>5%)"
+          description: "More than 5% of requests returned 5xx over the last 5 minutes."
+
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m]))) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency P95 (>1s)"
+          description: "95th percentile request latency exceeded 1s for 5 minutes."

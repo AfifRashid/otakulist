@@ -1,10 +1,3 @@
-/**
- * Backend (Express + SQLite) module / Jest test file — api.test.js
-Purpose: Briefly explains the role of this file within the OtakuList app.
-Notes: Keep functions small; prefer pure helpers; avoid modifying JSON or lockfiles.
- *
- * (Added by code review on 2025-09-28)
- */
 import request from 'supertest';
 import app from '../src/index.js';
 import { db } from '../src/lib/db.js';
@@ -13,7 +6,7 @@ beforeEach(() => {
   db.exec('DELETE FROM anime');
 });
 
-test('create → progress → stats', async () => {
+test('creates anime, increments progress, and updates stats totals', async () => {
   const create = await request(app).post('/api/anime').send({ title: 'Naruto', episodes_total: 10, est_ep_minutes: 24 });
   expect(create.status).toBe(201);
   const id = create.body.id;
@@ -28,7 +21,7 @@ test('create → progress → stats', async () => {
   expect(stats.body.hours_watched).toBeCloseTo(1.2, 1); // 3 * 24 / 60 = 1.2
 });
 
-test('rating validator', async () => {
+test('rejects invalid rating (>10) and accepts a valid rating', async () => {
   const create = await request(app).post('/api/anime').send({ title: 'Bleach' });
   const id = create.body.id;
   const bad = await request(app).patch(`/api/anime/${id}/rating`).send({ rating: 20 });
@@ -37,7 +30,7 @@ test('rating validator', async () => {
   expect(ok.status).toBe(200);
 });
 
-test('delete anime', async () => {
+test('deletes an anime and it no longer appears in the list', async () => {
   const create = await request(app).post('/api/anime').send({ title: 'Delete Me' });
   const id = create.body.id;
   const del = await request(app).delete(`/api/anime/${id}`);
@@ -47,7 +40,7 @@ test('delete anime', async () => {
   expect(list.body.find(a => a.id === id)).toBeUndefined();
 });
 
-test('reject exact duplicate title with 409', async () => {
+test('rejects exact duplicate title with 409 Conflict', async () => {
   const a = await request(app).post('/api/anime').send({ title: 'Naruto', episodes_total: 10 });
   expect(a.status).toBe(201);
 
@@ -60,7 +53,7 @@ test('reject exact duplicate title with 409', async () => {
   expect(list.body[0].title).toBe('Naruto');
 });
 
-test('reject case-insensitive duplicate (Naruto vs naruto)', async () => {
+test('rejects duplicate title case-insensitively (Naruto vs naruto)', async () => {
   const a = await request(app).post('/api/anime').send({ title: 'Naruto' });
   expect(a.status).toBe(201);
 
@@ -69,40 +62,35 @@ test('reject case-insensitive duplicate (Naruto vs naruto)', async () => {
   expect(dup.body.error).toMatch(/duplicate/i);
 });
 
-test('set progress by absolute value -> watching (partial)', async () => {
-  // create Naruto with 100 episodes
+test('sets progress by absolute value and marks status "watching"', async () => {
   const create = await request(app).post('/api/anime')
     .send({ title: 'Naruto', episodes_total: 100, est_ep_minutes: 24 });
   expect(create.status).toBe(201);
   const id = create.body.id;
 
-  // set progress to 80 (absolute)
   const set80 = await request(app).patch(`/api/anime/${id}/progress`)
     .send({ value: 80 });
   expect(set80.status).toBe(200);
   expect(set80.body.eps_watched).toBe(80);
   expect(set80.body.status).toBe('watching');
 
-  // verify persisted
   const list = await request(app).get('/api/anime');
   const naruto = list.body.find(a => a.id === id);
   expect(naruto.eps_watched).toBe(80);
   expect(naruto.status).toBe('watching');
 });
 
-test('set progress to total -> done', async () => {
+test('marks anime "done" when progress equals total and clamps overflows', async () => {
   const create = await request(app).post('/api/anime')
     .send({ title: 'OPM', episodes_total: 12 });
   const id = create.body.id;
 
-  // set to exactly total
   const full = await request(app).patch(`/api/anime/${id}/progress`)
     .send({ value: 12 });
   expect(full.status).toBe(200);
   expect(full.body.eps_watched).toBe(12);
   expect(full.body.status).toBe('done');
 
-  // trying to set over total clamps at total
   const over = await request(app).patch(`/api/anime/${id}/progress`)
     .send({ value: 999 });
   expect(over.status).toBe(200);
@@ -110,7 +98,7 @@ test('set progress to total -> done', async () => {
   expect(over.body.status).toBe('done');
 });
 
-test('set progress when total unknown -> accepts any non-negative and sets status', async () => {
+test('handles unknown total: accepts non-negative progress and updates status', async () => {
   const create = await request(app).post('/api/anime')
     .send({ title: 'Unknown Total' }); // episodes_total defaults to 0
   const id = create.body.id;
@@ -128,30 +116,25 @@ test('set progress when total unknown -> accepts any non-negative and sets statu
   expect(reset0.body.status).toBe('planned');
 });
 
-test('set and clear rating works', async () => {
-  // Create an anime
+test('sets a rating, then clears it (null), and persists both changes', async () => {
   const create = await request(app).post('/api/anime')
     .send({ title: 'Death Note', episodes_total: 37 });
   expect(create.status).toBe(201);
   const id = create.body.id;
 
-  // Set rating to 8
   const rate8 = await request(app).patch(`/api/anime/${id}/rating`)
     .send({ rating: 8 });
   expect(rate8.status).toBe(200);
   expect(rate8.body.rating).toBe(8);
 
-  // Verify persisted
   let list = await request(app).get('/api/anime');
   expect(list.body.find(a => a.id === id).rating).toBe(8);
 
-  // Clear rating (send null)
   const clear = await request(app).patch(`/api/anime/${id}/rating`)
     .send({ rating: null });
   expect(clear.status).toBe(200);
   expect(clear.body.rating).toBeNull();
 
-  // Verify persisted clear
   list = await request(app).get('/api/anime');
   expect(list.body.find(a => a.id === id).rating).toBeNull();
 });

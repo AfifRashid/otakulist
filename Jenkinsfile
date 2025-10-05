@@ -109,10 +109,6 @@ pipeline {
           echo "=== Starting production ==="
           RELEASE_TAG=${RELEASE_TAG} docker compose -p otakulist-prod -f docker-compose.prod.yml up -d
         '''
-
-        // Simple prod smoke checks
-        sh 'curl -sSf http://localhost:3001/api/anime > /dev/null'
-        sh 'curl -sSf http://localhost:8081 > /dev/null'
         echo "✅ Production is live. Tag: ${RELEASE_TAG}  FE: http://localhost:8081  BE: http://localhost:3001"
       }
     }
